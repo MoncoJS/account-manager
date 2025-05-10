@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Transaction extends Model
 {
@@ -12,14 +13,31 @@ class Transaction extends Model
 
     protected $fillable = [
         'bank_account_id',
-        'date',
+        'category_id',
         'type',
-        'category',
         'amount',
+        'date',
         'note'
     ];
-    public function bankAccount()
+
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'date' => 'date'
+    ];
+
+    public function bankAccount(): BelongsTo
     {
         return $this->belongsTo(BankAccount::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    // For backward compatibility
+    public function getCategoryAttribute($value)
+    {
+        return $this->category()->first()?->name ?? $value;
     }
 }

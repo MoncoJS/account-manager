@@ -61,6 +61,16 @@
                         <i class="bi bi-cash-stack"></i> รายรับรายจ่าย
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="{{ route('categories.index') }}" class="nav-link text-white">
+                        <i class="bi bi-tags"></i> หมวดหมู่
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ route('monthly-budgets.index') }}" class="nav-link text-white">
+                        <i class="bi bi-wallet2"></i> งบประมาณรายเดือน
+                    </a>
+                </li>
             </ul>
         </div>
     </div>
@@ -70,6 +80,13 @@
     @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     @endif
