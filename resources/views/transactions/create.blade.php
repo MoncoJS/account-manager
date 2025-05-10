@@ -50,7 +50,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">ประเภท</label>
-                    <select name="type" class="form-select @error('type') is-invalid @enderror" required>
+                    <select name="type" id="type" class="form-select @error('type') is-invalid @enderror" required>
                         <option value="income" {{ old('type') == 'income' ? 'selected' : '' }}>รายรับ</option>
                         <option value="expense" {{ old('type') == 'expense' ? 'selected' : '' }}>รายจ่าย</option>
                     </select>
@@ -61,9 +61,19 @@
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">หมวดหมู่</label>
-                    <input type="text" name="category" class="form-control @error('category') is-invalid @enderror" 
-                        value="{{ old('category') }}" required>
-                    @error('category')
+                    <select name="category_id" id="category_id" class="form-select @error('category_id') is-invalid @enderror" required>
+                        <option value="">เลือกหมวดหมู่</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}" 
+                                    data-type="{{ $category->type }}"
+                                    data-icon="{{ $category->icon }}"
+                                    data-color="{{ $category->color }}"
+                                    {{ old('category_id') == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('category_id')
                         <div class="invalid-feedback">{{ $message }}</div>
                     @enderror
                 </div>
@@ -103,4 +113,61 @@
         </form>
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const typeSelect = document.getElementById('type');
+    const categorySelect = document.getElementById('category_id');
+    const categoryOptions = Array.from(categorySelect.querySelectorAll('option[data-type]'));
+    const categories = categoryOptions.map(option => ({
+        value: option.value,
+        text: option.textContent,
+        type: option.dataset.type,
+        icon: option.dataset.icon,
+        color: option.dataset.color
+    }));
+
+    function filterCategories() {
+        const selectedType = typeSelect.value;
+        categoryOptions.forEach(option => {
+            if (option.value === '') return; // Skip the placeholder option
+            if (option.dataset.type === selectedType) {
+                option.style.display = '';
+            } else {
+                option.style.display = 'none';
+            }
+        });
+        categorySelect.value = ''; // Reset selection when type changes
+    }
+
+    // Custom select styling
+    const select2 = new TomSelect('#category_id', {
+        render: {
+            option: function(data, escape) {
+                const category = categories.find(cat => cat.value === data.value);
+                if (!category) return escape(data.text);
+                
+                return `<div class="d-flex align-items-center">
+                    <i class="bi ${category.icon} me-2" style="color: ${category.color}"></i>
+                    <span>${escape(category.text)}</span>
+                </div>`;
+            },
+            item: function(data, escape) {
+                const category = categories.find(cat => cat.value === data.value);
+                if (!category) return escape(data.text);
+                
+                return `<div class="d-flex align-items-center">
+                    <i class="bi ${category.icon} me-2" style="color: ${category.color}"></i>
+                    <span>${escape(category.text)}</span>
+                </div>`;
+            }
+        }
+    });
+
+    typeSelect.addEventListener('change', filterCategories);
+    filterCategories(); // Initial filter
+});
+</script>
+@endpush
 @endsection

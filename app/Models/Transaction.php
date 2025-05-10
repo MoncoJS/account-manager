@@ -13,16 +13,16 @@ class Transaction extends Model
 
     protected $fillable = [
         'bank_account_id',
-        'category_id',
-        'type',
-        'amount',
         'date',
-        'note'
+        'type',
+        'category_id',
+        'amount',
+        'note',
     ];
 
     protected $casts = [
+        'date' => 'date',
         'amount' => 'decimal:2',
-        'date' => 'date'
     ];
 
     public function bankAccount(): BelongsTo

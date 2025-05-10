@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\BankAccount;
+use App\Models\Category;
+
 class TransactionController extends Controller
 {
     /**
@@ -13,7 +15,7 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         //
-        $query = Transaction::with('bankAccount')->latest();
+        $query = Transaction::with(['bankAccount', 'category'])->latest();
 
         if ($request->filled('type')) {
             $query->where('type', $request->type);
@@ -27,7 +29,7 @@ class TransactionController extends Controller
             $query->whereYear('date', $request->year);
         }
 
-        $transactions = $query->get();
+        $transactions = $query->paginate(10);
 
         return view('transactions.index', compact('transactions'));
     }
@@ -39,7 +41,8 @@ class TransactionController extends Controller
     {
         //
         $bankAccounts = BankAccount::all();
-        return view('transactions.create', compact('bankAccounts'));
+        $categories = Category::all();
+        return view('transactions.create', compact('bankAccounts', 'categories'));
     }
 
     /**
@@ -48,17 +51,27 @@ class TransactionController extends Controller
     public function store(Request $request)
     {
         //
-        $request->validate([
+        $validated = $request->validate([
             'bank_account_id' => 'required|exists:bank_accounts,id',
             'date' => 'required|date',
             'type' => 'required|in:income,expense',
-            'category' => 'required|string|max:255',
+            'category_id' => 'required|exists:categories,id',
             'amount' => 'required|numeric|min:0',
-            'note' => 'nullable|string'
+            'note' => 'nullable|string|max:255',
         ]);
 
-        Transaction::create($request->all());
-        return redirect()->route('transactions.index')->with('success', 'บันทึกรายการสำเร็จ');
+        $transaction = Transaction::create($validated);
+
+        // Update bank account balance
+        $bankAccount = BankAccount::findOrFail($validated['bank_account_id']);
+        if ($validated['type'] === 'income') {
+            $bankAccount->balance += $validated['amount'];
+        } else {
+            $bankAccount->balance -= $validated['amount'];
+        }
+        $bankAccount->save();
+
+        return redirect()->route('transactions.index')->with('success', 'เพิ่มรายการสำเร็จ');
     }
 
     /**
@@ -75,7 +88,8 @@ class TransactionController extends Controller
     public function edit(Transaction $transaction)
     {
         $bankAccounts = BankAccount::all();
-        return view('transactions.edit', compact('transaction', 'bankAccounts'));
+        $categories = Category::all();
+        return view('transactions.edit', compact('transaction', 'bankAccounts', 'categories'));
     }
 
     /**
@@ -83,23 +97,52 @@ class TransactionController extends Controller
      */
     public function update(Request $request, Transaction $transaction)
     {
-        $request->validate([
-            'bank_account_id' => 'required',
+        $validated = $request->validate([
+            'bank_account_id' => 'required|exists:bank_accounts,id',
             'date' => 'required|date',
             'type' => 'required|in:income,expense',
-            'category' => 'required',
-            'amount' => 'required|numeric',
-            'note' => 'nullable',
+            'category_id' => 'required|exists:categories,id',
+            'amount' => 'required|numeric|min:0',
+            'note' => 'nullable|string|max:255',
         ]);
 
-        $transaction->update($request->all());
-        return redirect()->route('transactions.index')->with('success', 'แก้ไขรายการสำเร็จ');
+        // Revert old transaction's effect on bank account balance
+        $oldBankAccount = BankAccount::findOrFail($transaction->bank_account_id);
+        if ($transaction->type === 'income') {
+            $oldBankAccount->balance -= $transaction->amount;
+        } else {
+            $oldBankAccount->balance += $transaction->amount;
+        }
+        $oldBankAccount->save();
+
+        // Update transaction
+        $transaction->update($validated);
+
+        // Apply new transaction's effect on bank account balance
+        $newBankAccount = BankAccount::findOrFail($validated['bank_account_id']);
+        if ($validated['type'] === 'income') {
+            $newBankAccount->balance += $validated['amount'];
+        } else {
+            $newBankAccount->balance -= $validated['amount'];
+        }
+        $newBankAccount->save();
+
+        return redirect()->route('transactions.index')->with('success', 'อัปเดตรายการสำเร็จ');
     }
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(Transaction $transaction)
     {
+        // Revert transaction's effect on bank account balance
+        $bankAccount = BankAccount::findOrFail($transaction->bank_account_id);
+        if ($transaction->type === 'income') {
+            $bankAccount->balance -= $transaction->amount;
+        } else {
+            $bankAccount->balance += $transaction->amount;
+        }
+        $bankAccount->save();
+
         $transaction->delete();
         return redirect()->route('transactions.index')->with('success', 'ลบรายการสำเร็จ');
     }
