@@ -1,16 +1,16 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
             <h4 class="mb-0">
-                <i class="bi bi-cash-stack"></i> รายการรายรับรายจ่าย
+                <i class="bi bi-cash-stack text-primary"></i> รายการรายรับรายจ่าย
             </h4>
             <div>
-                <a href="{{ route('transactions.create') }}" class="btn btn-success me-2">
+                <a href="{{ route('transactions.create') }}" class="btn btn-primary me-2">
                     <i class="bi bi-plus-circle"></i> เพิ่มรายการ
                 </a>
-                <a href="{{ url('tax/' . date('Y')) }}" class="btn btn-info">
+                <a href="{{ url('tax/' . date('Y')) }}" class="btn btn-outline-info">
                     <i class="bi bi-calculator"></i> ภาษีปีนี้
                 </a>
             </div>
@@ -44,9 +44,10 @@
 
             @if($transactions->isEmpty())
                 <div class="text-center py-5">
-                    <i class="bi bi-cash-stack text-muted" style="font-size: 3rem;"></i>
-                    <p class="mt-3 text-muted">ยังไม่มีรายการรายรับรายจ่าย</p>
-                    <a href="{{ route('transactions.create') }}" class="btn btn-primary">
+                    <i class="bi bi-cash-stack text-muted" style="font-size: 4rem;"></i>
+                    <p class="mt-3 text-muted h5">ยังไม่มีรายการรายรับรายจ่าย</p>
+                    <p class="text-muted">เริ่มต้นโดยการเพิ่มรายการรายรับรายจ่ายของคุณ</p>
+                    <a href="{{ route('transactions.create') }}" class="btn btn-primary mt-2">
                         <i class="bi bi-plus-circle"></i> เพิ่มรายการแรก
                     </a>
                 </div>
@@ -55,45 +56,63 @@
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>วันที่</th>
-                                <th>บัญชี</th>
-                                <th>ประเภท</th>
-                                <th>หมวดหมู่</th>
-                                <th class="text-end">จำนวน</th>
-                                <th>หมายเหตุ</th>
-                                <th class="text-center">จัดการ</th>
+                                <th class="py-3">วันที่</th>
+                                <th class="py-3">บัญชี</th>
+                                <th class="py-3">ประเภท</th>
+                                <th class="py-3">หมวดหมู่</th>
+                                <th class="py-3 text-end">จำนวน</th>
+                                <th class="py-3">หมายเหตุ</th>
+                                <th class="py-3 text-center">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($transactions as $t)
-                                <tr>
-                                    <td>{{ date('d/m/Y', strtotime($t->date)) }}</td>
+                                <tr class="transition">
                                     <td>
-                                        <i class="bi bi-bank me-2"></i>
-                                        {{ $t->bankAccount->name }}
+                                        <span class="text-muted">{{ date('d/m/Y', strtotime($t->date)) }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-bank me-2 text-primary"></i>
+                                            <span class="fw-medium">{{ $t->bankAccount->name }}</span>
+                                        </div>
                                     </td>
                                     <td>
                                         @if($t->type == 'income')
-                                            <span class="badge bg-success">รายรับ</span>
+                                            <span class="badge bg-success-subtle text-success">รายรับ</span>
                                         @else
-                                            <span class="badge bg-danger">รายจ่าย</span>
+                                            <span class="badge bg-danger-subtle text-danger">รายจ่าย</span>
                                         @endif
                                     </td>
-                                    <td>{{ $t->category }}</td>
-                                    <td class="text-end">
-                                        {{ number_format($t->amount, 2) }} บาท
+                                    <td>
+                                        <span class="text-muted">{{ $t->category }}</span>
                                     </td>
-                                    <td>{{ $t->note }}</td>
+                                    <td class="text-end">
+                                        <span class="fw-medium {{ $t->type == 'income' ? 'text-success' : 'text-danger' }}">
+                                            {{ number_format($t->amount, 2) }} บาท
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted">{{ $t->note }}</span>
+                                    </td>
                                     <td class="text-center">
                                         <div class="btn-group">
-                                            <a href="{{ route('transactions.edit', $t) }}" class="btn btn-warning btn-sm">
-                                                <i class="bi bi-pencil"></i> แก้ไข
+                                            <a href="{{ route('transactions.edit', $t) }}" 
+                                                class="btn btn-outline-warning btn-sm"
+                                                data-bs-toggle="tooltip" 
+                                                title="แก้ไข">
+                                                <i class="bi bi-pencil"></i>
                                             </a>
-                                            <form action="{{ route('transactions.destroy', $t) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('transactions.destroy', $t) }}" 
+                                                method="POST" 
+                                                class="d-inline"
+                                                onsubmit="return confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?');">
                                                 @csrf @method('DELETE')
-                                                <button type="submit" class="btn btn-danger btn-sm"
-                                                    onclick="return confirm('คุณต้องการลบรายการนี้ใช่หรือไม่?')">
-                                                    <i class="bi bi-trash"></i> ลบ
+                                                <button type="submit" 
+                                                    class="btn btn-outline-danger btn-sm"
+                                                    data-bs-toggle="tooltip" 
+                                                    title="ลบ">
+                                                    <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
                                         </div>
@@ -110,6 +129,12 @@
     @push('scripts')
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
         const typeFilter = document.getElementById('typeFilter');
         const monthFilter = document.getElementById('monthFilter');
         const yearFilter = document.getElementById('yearFilter');
@@ -134,4 +159,19 @@
     });
     </script>
     @endpush
+
+    <style>
+    .transition {
+        transition: all 0.2s ease-in-out;
+    }
+    .transition:hover {
+        background-color: rgba(0,0,0,.02);
+    }
+    .bg-success-subtle {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+    .bg-danger-subtle {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+    </style>
 @endsection
